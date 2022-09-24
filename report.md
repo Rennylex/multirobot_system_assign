@@ -148,7 +148,7 @@ A plausible explanation would be, when the robot aims to accelarate to a higher 
 its wheel. And if there's a difference in the sleeping times of two wheels, the yaw angle of the robot will be changed 
 dramatically, and result in a curve-like orbit.
 
-### Debugging & misc
+### 3. Debugging & misc
 
 #### How to make the robot turn clockwise?
 
@@ -185,6 +185,16 @@ I make sure the duration time is a possitive number. Codes are as follows.
             rate.sleep()
 
 ```
+
+#### How to publish the data and read it from the terminal?
+
+A useful command line for reading the topic will be `rostopic echo '/error'`. However, when I first use this method,
+the process was killed because there's an error:
+`error pic`
+I then printed the `error_msg` and found that the results are given in complex form. After double checking the program, I
+found that it's because when calculating `correct_x` and `correct_y` using `cmath.sin` and `cmath.cos`, the results are also presented into a complex form in my case. The same thing happened when using `sqrt` to calculate the distance.
+
+Therefore, I use `.real` to acquire the real part of these complex results, which solved the problem.
 
 
 
