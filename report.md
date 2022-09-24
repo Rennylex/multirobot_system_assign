@@ -48,8 +48,7 @@
      
           while(i<edge_num):
             simple_shape.move_forward(edge_length)
-            #calculate
-            simple_shape.rotate_in_place(deg_inc)
+            simple_shape.rotate_in_place(deg_inc) # rotate the robot everytime it reaches a vertice
             
             dist=simple_shape.calculate_distance(i,deg_inc,edge_length) #calculate the error distance
             simple_shape.error(dist) #publish the error distance
@@ -59,8 +58,6 @@
   ```
   In the above codes, we call the `calculate_distance()` function to acquire the error measured by Eucledean Distance. We also
   call the `error()` function to publish the error topic. These steps will be covered in the following sections.
-  
-  
   
   Subscribe topic
   
@@ -91,18 +88,23 @@ Calculating the distance...
 After having the position of the robot, we can calculate the error with the following function:
 
 ```python
-    def calculate_distance(self,i,deg_inc,edge_len):
+   def calculate_distance(self,i,deg_inc,edge_len):
         print("Self x and y")
         print(self.x,self.y)
-        correct_x=edge_len*cos(i*deg_inc)
-        correct_y=edge_len*sin(i*deg_inc) 
+        
+        ##getting the correct coordinate for each vertice
+        self.correct_x+=edge_len*cos(deg_inc*i).real
+        self.correct_y+=edge_len*sin(deg_inc*i).real #in case that the calculation returns a complex, we need to use .real here
         print("correct x and y")
-        print(correct_x,correct_y)
+        print(self.correct_x,self.correct_y)
 
-        return sqrt((self.x-correct_x)**2+(self.y-correct_y)**2)
+        return sqrt((self.x-self.correct_x)**2+(self.y-self.correct_y)**2).real
+
 ```
 The ideal position of each vertice (at one end of each edge) is determined by three variables: the length of each edge `edge_len`, the index of edge `i` and the rotation angle for each
 turn `deg_inc`, as can be seen in line 4 and line 5 of the above codes.
+
+
 
 Then, we define the function `error` to publish the error data in Float32 format.
 
@@ -121,7 +123,12 @@ The robot was tested under 3 polygon shape: triangle, square and pentagon. For e
 
 ### 2.1. Analysis
 
-####With higher velocity, comes the bigger error?
+#### Overall performance
+
+According to the video, the error for triangle and square is fairly acceptable. The same for the first 4 vertices of the polygon. However, when it comes to the 5th vertice, the error increase drastically. The reason for causing this immense
+error might be the accumulation of errors, which ultimately leads to an fall down.
+
+#### With higher velocity, comes the bigger error?
   The robot is also tested with different linear velocity and the results are recorded in the table as follows. The relationship between velocity and error can be concluded as: with a higher speed, the greater the error would be. To be more specific, under the same `edge_len`, the robot will travel a shorter distance if the velocity is high
   
 |  Velocity (m/s)   | Error at Vertice 1 (m)  | Error at Vertice 2 (m) | Error at Vertice 3 (m) | Average Error (m)|
@@ -133,13 +140,55 @@ The robot was tested under 3 polygon shape: triangle, square and pentagon. For e
   The reason for this phenomenon is that the robot needs more time to accelerate and in order reach the high speed, and therefore more time to deaccelerate to stop. Take a look at the function `move_forward()`, the robot uses the travelling time to determine whether it has reached the destination, and the travelling time is calculated by assuming the robot travels in a constant speed. Therefore, the actual travel distance is always shorter than `edge_len`,
  and the higher the desired velocity is, the shorter the actual travel distance will be.
  
- ####With higher velocity, the more likely to travel in curve?
+ #### With higher velocity, the more likely to travel in curve?
  
  Another interesting phenomenon is that, when the speed is high, the robot is more likely to travel in curve. As can be seen in the following pictures:
     `pic1 & 2`
 A plausible explanation would be, when the robot aims to accelarate to a higher speed, it requires larger force to drive
 its wheel. And if there's a difference in the sleeping times of two wheels, the yaw angle of the robot will be changed 
 dramatically, and result in a curve-like orbit.
+
+### Debugging & misc
+
+#### How to make the robot turn clockwise?
+
+My direction parameters `rotate_direction` is an integer, and I set it to -1 to let the robot turn in a clockwise direction--by multiplying it to the `deg_inc`. However, this didn't work out at first: instead of turning at each vertice, the robot just went straight ahead.
+
+Therefore, something must be wrong with the `rotate_in_place()` function. After taking a closer look, I found that if I simply pass in a negative `rotation_angle`, the `duration` calculated by the `rotation_angle` will also be a negative number, which means the while loop will break immediately.
+
+My solution for this is to set the `simple_shape.angular_velocity` as negative if `rotation_direction` equals to -1. Then,
+I make sure the duration time is a possitive number. Codes are as follows.
+```python
+        def rotate_in_place(self, rotation_angle):
+        """
+        Rotate in place the robot of rotation_angle (rad) based on fixed velocity.
+        Assumption: Counterclockwise rotation.
+        """
+        twist_msg = Twist()
+
+
+        twist_msg.angular.z = self.angular_velocity
+        
+        duration = rotation_angle / twist_msg.angular.z
+        if(duration<0): duration=-duration
+        start_time = rospy.get_rostime()
+        rate = rospy.Rate(FREQUENCY)
+        while not rospy.is_shutdown():
+            # Check if done
+            if rospy.get_rostime() - start_time >= rospy.Duration(duration):
+                break
+                
+            # Publish message.
+            self._cmd_pub.publish(twist_msg)
+            
+            # Sleep to keep the set frequency.
+            rate.sleep()
+
+```
+
+
+
+
   
   
   
