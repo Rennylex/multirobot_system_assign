@@ -148,9 +148,9 @@ A plausible explanation would be, when the robot aims to accelarate to a higher 
 its wheel. And if there's a difference in the sleeping times of two wheels, the yaw angle of the robot will be changed 
 dramatically, and result in a curve-like orbit.
 
-### 3. Debugging & misc
+## 3. Debugging & misc
 
-#### How to make the robot turn clockwise?
+### How to make the robot turn clockwise?
 
 My direction parameters `rotate_direction` is an integer, and I set it to -1 to let the robot turn in a clockwise direction--by multiplying it to the `deg_inc`. However, this didn't work out at first: instead of turning at each vertice, the robot just went straight ahead.
 
@@ -186,7 +186,7 @@ I make sure the duration time is a possitive number. Codes are as follows.
 
 ```
 
-#### How to publish the data and read it from the terminal?
+### How to publish the data and read it from the terminal?
 
 A useful command line for reading the topic will be `rostopic echo '/error'`. However, when I first use this method,
 the process was killed because there's an error:
