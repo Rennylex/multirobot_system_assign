@@ -120,6 +120,8 @@ The robot was tested under 3 polygon shape: triangle, square and pentagon. For e
     here is the screen shot for error...
 
 ### 2.1. Analysis
+
+####With higher velocity, comes the bigger error?
   The robot is also tested with different linear velocity and the results are recorded in the table as follows. The relationship between velocity and error can be concluded as: with a higher speed, the greater the error would be. To be more specific, under the same `edge_len`, the robot will travel a shorter distance if the velocity is high
   
 |  Velocity (m/s)   | Error at Vertice 1 (m)  | Error at Vertice 2 (m) | Error at Vertice 3 (m) | Average Error (m)|
@@ -130,6 +132,15 @@ The robot was tested under 3 polygon shape: triangle, square and pentagon. For e
   
   The reason for this phenomenon is that the robot needs more time to accelerate and in order reach the high speed, and therefore more time to deaccelerate to stop. Take a look at the function `move_forward()`, the robot uses the travelling time to determine whether it has reached the destination, and the travelling time is calculated by assuming the robot travels in a constant speed. Therefore, the actual travel distance is always shorter than `edge_len`,
  and the higher the desired velocity is, the shorter the actual travel distance will be.
+ 
+ ####With higher velocity, the more likely to travel in curve?
+ 
+ Another interesting phenomenon is that, when the speed is high, the robot is more likely to travel in curve. As can be seen in the following pictures:
+    `pic1 & 2`
+A plausible explanation would be, when the robot aims to accelarate to a higher speed, it requires larger force to drive
+its wheel. And if there's a difference in the sleeping times of two wheels, the yaw angle of the robot will be changed 
+dramatically, and result in a curve-like orbit.
+  
   
   
 
