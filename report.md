@@ -121,6 +121,9 @@ Then, we define the function `error` to publish the error data in Float32 format
 The robot was tested under 3 polygon shape: triangle, square and pentagon. For each polygon, video and erro at each vertice was recorded. 
 
     here is the screen shot for error...
+![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/3_er.png)
+![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/4_er.png)
+![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/5_er.png)
 
 ### 2.1. Overall performance
 
