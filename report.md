@@ -189,7 +189,7 @@ I make sure the duration time is a possitive number. Codes are as follows.
 
 A useful command line for reading the topic will be `rostopic echo '/error'`. However, when I first use this method,
 the process was killed because there's an error:
-`error pic`
+![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/last_er.png)
 I then printed the `error_msg` and found that the results are given in complex form. After double checking the program, I
 found that it's because when calculating `correct_x` and `correct_y` using `cmath.sin` and `cmath.cos`, the results are also presented into a complex form in my case. The same thing happened when using `sqrt` to calculate the distance.
 
