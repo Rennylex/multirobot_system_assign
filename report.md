@@ -1,6 +1,8 @@
-# Testing
+# COSC.69.13, 2022 fall, PA1, Ziang Ren(Graduate student)
 
 ## 1. Method Explanation
+
+## 1.1 General Description
   Overall speaking, the project aims to instruct the robot to travel along a designated normal polygon shape. This can actually be broken down
   into 3 steps:
   1.  tralvel the designated distance
@@ -33,7 +35,7 @@
     
   ### 1.2.2. Python file: simple_shape
   
-  Move the object
+  #### Move the object
   
   the movement of the object is the combination of moving forward and rotation, which can be realized by the function `move_forward(self, distance)`
   and `rotate_in_place(self, rotation_angle)`. The distance for moving is `edge_len`, and the angles for turning each time `deg_inc` can be calculated
@@ -59,7 +61,7 @@
   In the above codes, we call the `calculate_distance()` function to acquire the error measured by Eucledean Distance. We also
   call the `error()` function to publish the error topic. These steps will be covered in the following sections.
   
-  Subscribe topic
+  #### Subscribe topic
   
   In order to calculate the error, knowing the position of our robot is necessary--luckily, subscribing the Odometry message in
   nav_msgs can satisfy this demand.
@@ -81,9 +83,8 @@
         self.y=yy
  ```
   
- Publish topic
+ #### Publish topic
   
-Calculating the distance...
 
 After having the position of the robot, we can calculate the error with the following function:
 
@@ -121,14 +122,12 @@ The robot was tested under 3 polygon shape: triangle, square and pentagon. For e
 
     here is the screen shot for error...
 
-### 2.1. Analysis
-
-#### Overall performance
+### 2.1. Overall performance
 
 According to the video, the error for triangle and square is fairly acceptable. The same for the first 4 vertices of the polygon. However, when it comes to the 5th vertice, the error increase drastically. The reason for causing this immense
 error might be the accumulation of errors, which ultimately leads to an fall down.
 
-#### With higher velocity, comes the bigger error?
+### 2.2. With higher velocity, comes the bigger error?
   The robot is also tested with different linear velocity and the results are recorded in the table as follows. The relationship between velocity and error can be concluded as: with a higher speed, the greater the error would be. To be more specific, under the same `edge_len`, the robot will travel a shorter distance if the velocity is high
   
 |  Velocity (m/s)   | Error at Vertice 1 (m)  | Error at Vertice 2 (m) | Error at Vertice 3 (m) | Average Error (m)|
@@ -140,7 +139,7 @@ error might be the accumulation of errors, which ultimately leads to an fall dow
   The reason for this phenomenon is that the robot needs more time to accelerate and in order reach the high speed, and therefore more time to deaccelerate to stop. Take a look at the function `move_forward()`, the robot uses the travelling time to determine whether it has reached the destination, and the travelling time is calculated by assuming the robot travels in a constant speed. Therefore, the actual travel distance is always shorter than `edge_len`,
  and the higher the desired velocity is, the shorter the actual travel distance will be.
  
- #### With higher velocity, the more likely to travel in curve?
+ ### 2.3 With higher velocity, the more likely to travel in curve?
  
  Another interesting phenomenon is that, when the speed is high, the robot is more likely to travel in curve. As can be seen in the following pictures:
     `pic1 & 2`
@@ -150,7 +149,7 @@ dramatically, and result in a curve-like orbit.
 
 ## 3. Debugging & misc
 
-### How to make the robot turn clockwise?
+### 3.1. How to make the robot turn clockwise?
 
 My direction parameters `rotate_direction` is an integer, and I set it to -1 to let the robot turn in a clockwise direction--by multiplying it to the `deg_inc`. However, this didn't work out at first: instead of turning at each vertice, the robot just went straight ahead.
 
@@ -186,7 +185,7 @@ I make sure the duration time is a possitive number. Codes are as follows.
 
 ```
 
-### How to publish the data and read it from the terminal?
+### 3.2. How to publish the data and read it from the terminal?
 
 A useful command line for reading the topic will be `rostopic echo '/error'`. However, when I first use this method,
 the process was killed because there's an error:
