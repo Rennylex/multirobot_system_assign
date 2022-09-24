@@ -122,11 +122,11 @@ The robot was tested under 3 polygon shape: triangle, square and pentagon. For e
 ### 2.1. Analysis
   The robot is also tested with different linear velocity and the results are recorded in the table as follows. The relationship between velocity and error can be concluded as: with a higher speed, the greater the error would be. To be more specific, under the same `edge_len`, the robot will travel a shorter distance if the velocity is high
   
-|  Velocity   | Error at Vertice 1  | Error at Vertice 2  | Error at Vertice 3  | Average Error|
+|  Velocity (m/s)   | Error at Vertice 1 (m)  | Error at Vertice 2 (m) | Error at Vertice 3 (m) | Average Error (m)|
 |  ----       | ----                  |                     ---- |         ---- | ----   |
-| 0.2 | 0.0341282788309 |0.018326361481 |0.114480155123 |单元格 |
-| 0.8 | 0.311147796769 |0.260894322987 |0.42401567887 |单元格 |
-| 1.4 | 0.652238059437 |0.625472860458 |0.33535084758 |单元格 |
+| 0.2 | 0.0341282788309 |0.018326361481 |0.114480155123 |0.055644931811 |
+| 0.8 | 0.311147796769 |0.260894322987 |0.42401567887 | 0.332019266208 |
+| 1.4 | 0.652238059437 |0.625472860458 |0.33535084758 | 0.537687255825|
   
   The reason for this phenomenon is that the robot needs more time to accelerate and in order reach the high speed, and therefore more time to deaccelerate to stop. Take a look at the function `move_forward()`, the robot uses the travelling time to determine whether it has reached the destination, and the travelling time is calculated by assuming the robot travels in a constant speed. Therefore, the actual travel distance is always shorter than `edge_len`,
  and the higher the desired velocity is, the shorter the actual travel distance will be.
