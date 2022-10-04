@@ -250,49 +250,35 @@ This phenomenon is easy to understand--higher angular velocity requires the robo
 
 ## 3. Debugging & misc
 
-### 3.1. How to make the robot turn clockwise?
+### 3.1. How to assign executable permission to the .sh file?
 
-My direction parameters `rotate_direction` is an integer, and I set it to -1 to let the robot turn in a clockwise direction--by multiplying it to the `deg_inc`. However, this didn't work out at first: instead of turning at each vertice, the robot just went straight ahead.
+Initially, I opened 3 terminals for letting 3 robots to execute the node file. Then I decided to use a .sh script (run3.sh) to do the trick. The script is as follows
 
-Therefore, something must be wrong with the `rotate_in_place()` function. After taking a closer look, I found that if I simply pass in a negative `rotation_angle`, the `duration` calculated by the `rotation_angle` will also be a negative number, which means the while loop will break immediately.
+```bash
+#!/bin/sh
+ROS_NAMESPACE=robot_0 roslaunch simple_shape simple_shape.launch &
+ROS_NAMESPACE=robot_1 roslaunch simple_shape simple_shape.launch &
+ROS_NAMESPACE=robot_2 roslaunch simple_shape simple_shape.launch &
+```
+But when I used the command line `./run3.sh` to execute it, the terminal returns a permission denied error. It turns out that to make a shell script file executable, we have to first run `chmod +x filename.sh` to mark it as executable.
 
-My solution for this is to set the `simple_shape.angular_velocity` as negative if `rotation_direction` equals to -1. Then,
-I make sure the duration time is a possitive number. Codes are as follows.
-```python
-        def rotate_in_place(self, rotation_angle):
-        """
-        Rotate in place the robot of rotation_angle (rad) based on fixed velocity.
-        Assumption: Counterclockwise rotation.
-        """
-        twist_msg = Twist()
-        twist_msg.angular.z = self.angular_velocity
-        duration = rotation_angle / twist_msg.angular.z
-        if(duration<0): duration=-duration
-        start_time = rospy.get_rostime()
-        rate = rospy.Rate(FREQUENCY)
-        while not rospy.is_shutdown():
-            # Check if done
-            if rospy.get_rostime() - start_time >= rospy.Duration(duration):
-                break
-            # Publish message.
-            self._cmd_pub.publish(twist_msg)
-            # Sleep to keep the set frequency.
-            rate.sleep()
+The same should be applied for the scripts killing the process.
+
+```bash
+#! /bin/bash
+
+#chmod +x run4.sh
+PID=$(ps -A | grep "python" | awk '{print $1}')
+for pid in $PID
+do
+    kill  "$pid"
+done
 ```
 
 
 
+### 3.2. How to 
 
-
-### 3.2. How to publish the data and read it from the terminal?
-
-A useful command line for reading the topic will be `rostopic echo '/error'`. However, when I first use this method,
-the process was killed because there's an error:
-![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/last_er.png)
-I then printed the `error_msg` and found that the results are given in complex form. After double checking the program, I
-found that it's because when calculating `correct_x` and `correct_y` using `cmath.sin` and `cmath.cos`, the results are also presented into a complex form in my case. The same thing happened when using `sqrt` to calculate the distance.
-
-Therefore, I use `.real` to acquire the real part of these complex results, which solved the problem.
 
 
 
