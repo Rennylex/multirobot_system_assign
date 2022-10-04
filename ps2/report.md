@@ -239,7 +239,7 @@ Additionally, if the robots are too far from each other (larger than `DIS_LOWER`
 
 ## 2. Results and Evaluation
 
-The robot was tested for alignment, cohesion, seperation respectively, and also combined.
+The robots were tested for alignment, cohesion, seperation, and obstacle avoiding. Videos were recorded.
 
 ### 2.1. Overall performance
 
@@ -277,9 +277,9 @@ do
 done
 ```
 
+### 3.2. How to avoid the zig-zag motion?
 
-
-### 3.2. How to 
+As I mentioned before, when I increased the angular velocity, the robot will do the zig-zag motion because of the overhead. However, this issue is solved by setting up threshold. The robots are allowed to have slightly difference between its current yaw and the target yaw.
 
 
 
