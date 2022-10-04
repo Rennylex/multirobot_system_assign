@@ -7,19 +7,19 @@
   Overall speaking, the project aims to let us develop a node that can make the robot to do the flocking behavior
   containing 3 movements:
   1.  Align: robots group trying to move in the same directions
-  2.  Cohesion: robots that are relatively far trying to be togather and moving 
-  3.  Seperation: robots that are relatively close trying to spread out a little bit.
+  2.  Cohesion: robots that are relatively far trying to be together and moving 
+  3.  Separation: robots that are relatively close trying to spread out a little bit.
   
   In order to let the robot implement the aforementioned behaviors, we first need to decide how to pass down the instructions--to be more specific, what parameters we should set up. My idea is that, the robot should receive a 
- target direction--`target_yaw`-- dynamically given by our algorithm. This `target_yaw` will be changing the whole time according to the local situational awarenss of the robots. It is also a parameter calculated by weighting the yaw angle 
- given by `self.align()`, `self.cohesion()`, and `self.seperation()`.
+ target direction--`target_yaw`-- dynamically given by our algorithm. This `target_yaw` will be changing the whole time according to the local situational awareness of the robots. It is also a parameter calculated by weighting the yaw angle 
+ given by `self.align()`, `self.cohesion()`, and `self.separation()`.
   
   
   ## 1.2. Code implementation
   
-  What we're gonna do is to implement the code.
+  What we're going to do is to implement the code.
  ### 1.2.1. Launch File
-  Different from the previous task, in this task, we need to spawn multiple robots and control them. For the Gazebo simulator, we can do so buy declaring multiple robots in the launch file, and clarify their respective namespace:
+  Different from the previous task, in this task, we need to spawn multiple robots and control them. For the Gazebo simulator, we can do so by declaring multiple robots in the launch file, and clarifying their respective namespace:
   ```launch
   <launch>
   <arg name="model" default="waffle_pi"/>
@@ -57,7 +57,7 @@
   ![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/ps2/ini_gazebo.png)
   
   #### world file modification
-  If we want to test the robots in the StageROS, we need to generate our own world file that defines the robots objects and floor plan. Here is how I spawn 10 robots in the `.world` file.
+  If we want to test the robots in the StageROS, we need to generate our own world file that defines the robot’s objects and floor plan. Here is how I spawn 10 robots in the `.world` file.
   ```world
   # throw in 10 robots
 erratic( pose [ -10.277 23.266 0.000 75.000 ] name "era" color "blue")
@@ -84,7 +84,7 @@ erratic( pose [ -3.277 25.266 0 150.000 ] name "era10" color "blue")
   
   #### Structure
   
-  Since the ultimate message we need to give to the robots is the direction--which indicate where the velocity vector should be pointing, my implementation is to let the robots get moving the whole time, but also have them constantly check
+  Since the ultimate message we need to give to the robots is the direction--which indicates where the velocity vector should be pointing, my implementation is to let the robots get moving the whole time, but also have them constantly check
  if their `self.yaw` equals to the `target_yaw`.
  
  ```python
@@ -127,8 +127,8 @@ erratic( pose [ -3.277 25.266 0 150.000 ] name "era10" color "blue")
         self.stop()
         
  ```
-  The above code is modified from the original `move_forward()`. Here, we let the robot move forward all the time--unless it detects a obstacles(for obstacles detection, the Gazebo simulator allows for `laser_scan` topic, while for the StageROS, we can use `base_scan` topic). in the while loop, we first calculate the yaw angle for alignment, seperation and cohesion, and then we combine them altogether to get the ultimate `target_yaw`. If `dif_yaw`, which is the difference between current yaw and the `target_yaw` is within the `MAX_ERROR`, the robot will maintain its current direction.
-  Also, for the obstacle avoidance, the robot will turn 180 degrees when it find itself in front of an obstacle.
+  The above code is modified from the original `move_forward()`. Here, we let the robot move forward all the time--unless it detects obstacles (for obstacles detection, the Gazebo simulator allows for `laser_scan` topic, while for the StageROS, we can use `base_scan` topic). in the while loop, we first calculate the yaw angle for alignment, separation and cohesion, and then we combine them all together to get the ultimate `target_yaw`. If `dif_yaw`, which is the difference between the current yaw and the `target_yaw` is within the `MAX_ERROR`, the robot will maintain its current direction.
+  Also, for obstacle avoidance, the robot will turn 180 degrees when it finds itself in front of an obstacle.
   
   
   
@@ -147,7 +147,7 @@ erratic( pose [ -3.277 25.266 0 150.000 ] name "era10" color "blue")
 
 #### self.align()
 
-Aligment means that robots should be move in the same direction. The alignment function loop through all neighboring robots, and then get their velocity vectors, and ultimately average the velocity vectors to get the final direction. Since all robots here are initialized with the same speed magnitude, we can directely average the yaw angles of different neighboring robots.
+Alignment means that robots should move in the same direction. The alignment function loop through all neighboring robots, and then gets their velocity vectors, and ultimately averages the velocity vectors to get the final direction. Since all robots here are initialized with the same speed magnitude, we can directly average the yaw angles of different neighboring robots.
 
 ```python
     def align(self):
@@ -167,7 +167,7 @@ Aligment means that robots should be move in the same direction. The alignment f
         return avg_yaw
 ```
 
-Since the orientation info stored in the `odom` topic is expressed in quaternio [x,y,z,w], we have to convert it to Euler
+Since the orientation info stored in the `odom` topic is expressed in quaternion [x,y,z,w], we have to convert it to Euler
 Angle to get the yaw angle. This can be done by calling `tf.transformations.euler_from_quaternion()`. 
 
 
@@ -200,13 +200,13 @@ Angle to get the yaw angle. This can be done by calling `tf.transformations.eule
             return 0
 ```
  In the above codes, after getting the `avg_x` and `avg_y`, we need to use inverse_tan `math.atan2()` to get the correct
- yaw angle information. Also, be advised that if the robots are too close to each other(smaller than the `DIS_UPPER`), we don't want them to gather--that might lead to an collison. Under that circumstance, the function will return 0.
+ yaw angle information. Also, be advised that if the robots are too close to each other(smaller than the `DIS_UPPER`), we don't want them to gather--that might lead to a collision. Under that circumstance, the function will return 0.
  
 ####  self.seperation()
-Seperation means that robots should disperse when they are too close to each other. `self.seperation()` applies the same logic of `self.cohesion`--but in an opposite direction. After calculating the averaged x and y, we should substract the current coordinate of the robot from the averaged x and y respectively.
+Separation means that robots should disperse when they are too close to each other. `self.separation()` applies the same logic of `self.cohesion`--but in an opposite direction. After calculating the averaged x and y, we should subtract the current coordinate of the robot from the average x and y respectively.
 
 ```python
-    def seperation(self):
+    def separation(self):
         """return the desired yaw, pointing out of the center of the robot"""
         #calculated by averaging the pos.x and pos.y of neighboring robots
         cnt=0#number of robots within the range
@@ -234,7 +234,7 @@ Seperation means that robots should disperse when they are too close to each oth
             return 0
 ```
 
-Additionally, if the robots are too far from each other (larger than `DIS_LOWER`), we don't want them to seperate from each other, because they are already seperated enough.
+Additionally, if the robots are too far from each other (larger than `DIS_LOWER`), we don't want them to separate from each other, because they are already separated enough.
 
 
 
@@ -242,11 +242,11 @@ Additionally, if the robots are too far from each other (larger than `DIS_LOWER`
 
 ## 2. Results and Evaluation
 
-The robots were tested for alignment, cohesion, seperation, and obstacle avoiding. Videos were recorded.
+The robots were tested for alignment, cohesion, separation, and obstacle avoidance. Videos were recorded.
 
 ### 2.1. Overall performance
 
-According to the video, the robots behaved correctly for all of these movements. Also, when I combine all these behaviors together, the robots will also following the correct rules. They also have good grouping behavior--only focus on the local situation.
+According to the video, the robots behaved correctly for all of these movements. Also, when I combine all these behaviors together, the robots will also follow the correct rules. They also have good grouping behavior--only focusing on the local situation.
 
 ### 2.2. With higher angular velocity, the bigger chance to move in zig-zag?
 In my codes, the angular velocity is a constant. However, when I increase its values, I find that the robots will behave correctly--but their movement is less smooth. In fact, when they try to go straight, they move in a zig-zag manner. 
@@ -257,7 +257,7 @@ This phenomenon is easy to understand--higher angular velocity requires the robo
 
 ### 3.1. How to assign executable permission to the .sh file?
 
-Initially, I opened 3 terminals for letting 3 robots to execute the node file. Then I decided to use a .sh script (run3.sh) to do the trick. In this file, I have to designate the namespaces for different robots,and the same for the nodes and launch file we want them to run. The script is as follows
+Initially, I opened 3 terminals for letting 3 robots to execute the node file. Then I decided to use a .sh script (run3.sh) to do the trick. In this file, I have to designate the namespaces for different robots, and the same for the nodes and launch file we want them to run. The script is as follows
 
 ```bash
 #!/bin/sh
@@ -265,9 +265,9 @@ ROS_NAMESPACE=robot_0 roslaunch simple_shape simple_shape.launch &
 ROS_NAMESPACE=robot_1 roslaunch simple_shape simple_shape.launch &
 ROS_NAMESPACE=robot_2 roslaunch simple_shape simple_shape.launch &
 ```
-But when I used the command line `./run3.sh` to execute it, the terminal returns a permission denied error. It turns out that to make a shell script file executable, we have to first run `chmod +x filename.sh` to mark it as executable.
+But when I used the command line `./run3.sh` to execute it, the terminal returned a permission denied error. It turns out that to make a shell script file executable, we have to first run `chmod +x filename.sh` to mark it as executable.
 
-The same should be applied for the scripts killing the process.
+The same should be applied to the scripts killing the process.
 
 ```bash
 #! /bin/bash
@@ -282,7 +282,7 @@ done
 
 ### 3.2. How to avoid the zig-zag motion?
 
-As I mentioned before, when I increased the angular velocity, the robot will do the zig-zag motion because of the overhead. However, this issue is solved by setting up threshold. The robots are allowed to have slightly difference between its current yaw and the target yaw.
+As I mentioned before, when I increased the angular velocity, the robot will do the zig-zag motion because of the overhead. However, this issue is solved by setting up a threshold. The robots are allowed to have a slight difference between their current yaw and the target yaw.
 
 
 
