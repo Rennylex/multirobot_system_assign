@@ -53,6 +53,27 @@
   </group>
   ```
   
+  #### world file modification
+  If we want to test the robots in the StageROS, we need to generate our own world file that defines the robots objects and floor plan. Here is how I spawn 10 robots in the `.world` file.
+  ```world
+  # throw in 10 robots
+erratic( pose [ -10.277 23.266 0.000 75.000 ] name "era" color "blue")
+erratic( pose [ -14.277 19.266 0.000 10.000 ] name "era2" color "blue")
+erratic( pose [ -13.277 18.266 0.000 160.000 ] name "era3" color "blue")
+erratic( pose [ -6.277 25.266 0 150.000 ] name "era4" color "blue")
+erratic( pose [ -11.277 18.266 0 180.000 ] name "era5" color "blue")
+erratic( pose [ -10.277 26.266 0 80.000 ] name "era6" color "blue")
+erratic( pose [ -13.277 25.266 0 120.000 ] name "era7" color "blue")
+erratic( pose [ -8.277 27.266 0 130.000 ] name "era8" color "blue")
+erratic( pose [ -7.277 23.266 0 140.000 ] name "era9" color "blue")
+erratic( pose [ -3.277 25.266 0 150.000 ] name "era10" color "blue")
+  ```
+  I use the robot class `erratic`, and I need to specify the location and the yaw angle of the robots when defining them.
+  The names I give them are not their namespaces. They should have the namespaces `robot_0` to `robot_9`
+  
+  In order to get the namespace of the robot currently running the node, we can use `self.robot_name=rospy.get_namespace()`
+  The index for the robot should be the second one to the end. Use `self.robot_no=self.robot_name[-2]` to get that digit.
+  
    
   ### 1.2.2. Python file: simple_shape
   
@@ -63,7 +84,7 @@
  
  ```python
      def move_forward(self):
-        """Function to move_forward for a given distance."""
+        """Function to move_forward"""
         # Rate at which to operate the while loop.
         rate = rospy.Rate(FREQUENCY)
 
@@ -89,8 +110,8 @@
                 twist_msg.angular.z=0#stop turning
 
             twist_msg.linear.x = self.linear_velocity
-            if self._close_obstacle:
-                self.stop()
+            if self._close_obstacle:#when in front of obstacle, turn 180 degrees.
+                self.rotation_in_place(math.pi)
             else:
                 self._cmd_pub.publish(twist_msg)
 
@@ -101,100 +122,131 @@
         self.stop()
         
  ```
- 
- 
- 
-  In the above codes, we call the `calculate_distance()` function to acquire the error measured by Eucledean Distance. We also
-  call the `error()` function to publish the error topic. These steps will be covered in the following sections.
+  The above code is modified from the original `move_forward()`. Here, we let the robot move forward all the time--unless it detects a obstacles(for obstacles detection, the Gazebo simulator allows for `laser_scan` topic, while for the StageROS, we can use `base_scan` topic). in the while loop, we first calculate the yaw angle for alignment, seperation and cohesion, and then we combine them altogether to get the ultimate `target_yaw`. If `dif_yaw`, which is the difference between current yaw and the `target_yaw` is within the `MAX_ERROR`, the robot will maintain its current direction.
+  Also, for the obstacle avoidance, the robot will turn 180 degrees when it find itself in front of an obstacle.
   
-  #### Subscribe topic
   
-  In order to calculate the error, knowing the position of our robot is necessary--luckily, subscribing the Odometry message in
-  nav_msgs can satisfy this demand.
   
+  
+  #### Subscribe topics
+  
+  Since we need to know the location and orientation information of other robots, we need to subscribe to those topics in odom.
   ```python
-        # Setting up subscriber.
-        self._odom_sub  = rospy.Subscriber(DEFAULT_ODOM_TOPIC, Odometry,  self._odom_callback, queue_size=1)
+  #subscribing to a robot's odom information
+  self.robo_0_odom=rospy.Subscriber('/robot_'+str(0)+'/odom', Odometry,  self._odom_callback_2, queue_size=4)
   ```
-  
- The `self._odom_callback` is actually a callback function that's going to be called every time a message of this topic gets
- published. I define this callback function to acquire the position of the robot and assign the coordinates to instance
- variables `self.x` and `self.y`. Here the msg is actually a instanciated Odometry object.
+  This subscribing process should be repeated until all robots' `odom` msgs are subscribed. In the callback function
+  `self._odom_callback_2`, the info will be stored in the numpy arrays where the key is the index of the robot, and the value is the corresponding information like x coordinate and y coordinate.
  
- ```python
-     def _odom_callback(self,msg):
-        xx=msg.pose.pose.position.x #get x
-        yy=msg.pose.pose.position.y #get y
-        self.x=xx
-        self.y=yy
- ```
-  
- #### Publish topic
-  
 
-After having the position of the robot, we can calculate the error with the following function:
+
+#### self.align()
+
+Aligment means that robots should be move in the same direction. The alignment function loop through all neighboring robots, and then get their velocity vectors, and ultimately average the velocity vectors to get the final direction. Since all robots here are initialized with the same speed magnitude, we can directely average the yaw angles of different neighboring robots.
 
 ```python
-   def calculate_distance(self,i,deg_inc,edge_len):
-        print("Self x and y")
-        print(self.x,self.y)
+    def align(self):
+        """this function return the desired speed, which is the average speed of two other robots(in a vector)"""
+        cnt=0#count the number of robots within the range
+        avg_yaw=0#average yaw
+        for i in range(0,ROBOT_NUM):#loop through all robots
+            if(self.within_dis(i)):#if the robot is within the range
+                if(self.within_dis(i) and i!=self.robot_no):#if the robot is not itself
+                    ori_list=[self.ori_x[i],self.ori_y[i],self.ori_z[i],self.ori_w[i]]#get the orientation of the robot
+                    (roll, pitch, yaw)=tf.transformations.euler_from_quaternion(ori_list)#convert the orientation to yaw
+                    avg_yaw+=yaw
+                    cnt+=1
+        if(cnt!=0):
+            avg_yaw/=cnt   
+        print(avg_yaw)
+        return avg_yaw
+```
+
+Since the orientation info stored in the `odom` topic is expressed in quaternio [x,y,z,w], we have to convert it to Euler
+Angle to get the yaw angle. This can be done by calling `tf.transformations.euler_from_quaternion()`. 
+
+
+#### self.cohesion()
+ Cohesion means that robots should be moving towards their geographical center--which is calculated by first averaging the x and y coordinates of the neighboring robot and then substracting it from the robot's own location. The difference is actually a vector pointing from the robot to the center of the neighboring robots.
+```python
+    def cohesion(self):
+        """return the desired yaw, pointing to the center of the robot"""
+        #calculated by averaging the pos.x and pos.y of neighboring robots
+        cnt=0#count the number of robots within the range
+        avg_x=0#  average x
+        avg_y=0#  average y
+        avg_yaw=0#  average yaw
+        for i in range(0,ROBOT_NUM):#loop through all robots
+            if(self.within_dis(i)):#if the robot is within the range
+                if(self.within_dis(i) and i!=self.robot_no):#if the robot is within the range and not itself
+                    avg_x+=self.pos_x[i]
+                    avg_y+=self.pos_y[i]
+                    cnt+=1
+
+        if(cnt!=0):
+            avg_x=avg_x/cnt
+            avg_y=avg_y/cnt
+        #calculate the desired yaw
+        avg_yaw=math.atan2(avg_y-self.y,avg_x-self.x)
         
-        ##getting the correct coordinate for each vertice
-        self.correct_x+=edge_len*cos(deg_inc*i).real
-        self.correct_y+=edge_len*sin(deg_inc*i).real #in case that the calculation returns a complex, we need to use .real here
-        print("correct x and y")
-        print(self.correct_x,self.correct_y)
-
-        return sqrt((self.x-self.correct_x)**2+(self.y-self.correct_y)**2).real
-
+        if(self.dis(avg_x,avg_y)>DIS_UPPER):#if the distance is too far
+            return avg_yaw
+        else:
+            return 0
 ```
-The ideal position of each vertice (at one end of each edge) is determined by three variables: the length of each edge `edge_len`, the index of edge `i` and the rotation angle for each
-turn `deg_inc`, as can be seen in line 4 and line 5 of the above codes.
-
-
-
-Then, we define the function `error` to publish the error data in Float32 format.
+ In the above codes, after getting the `avg_x` and `avg_y`, we need to use inverse_tan `math.atan2()` to get the correct
+ yaw angle information. Also, be advised that if the robots are too close to each other(smaller than the `DIS_UPPER`), we don't want them to gather--that might lead to an collison. Under that circumstance, the function will return 0.
+ 
+####  self.seperation()
+Seperation means that robots should disperse when they are too close to each other. `self.seperation()` applies the same logic of `self.cohesion`--but in an opposite direction. After calculating the averaged x and y, we should substract the current coordinate of the robot from the averaged x and y respectively.
 
 ```python
-    def error(self,dist):
-        error_msg=Float32()
-        error_msg.data=dist
-        self._error_pub.publish(error_msg)
+    def seperation(self):
+        """return the desired yaw, pointing out of the center of the robot"""
+        #calculated by averaging the pos.x and pos.y of neighboring robots
+        cnt=0#number of robots within the range
+        avg_x=0#average x of robots within the range
+        avg_y=0#average y of robots within the range
+        avg_yaw=0#average yaw of robots within the range
+
+        for i in range(0,ROBOT_NUM):#loop through all robots
+            if(self.within_dis(i)):#if the robot is within the range
+                if(self.within_dis(i) and i!=self.robot_no):#if the robot is within the range and not itself
+                    avg_x+=self.pos_x[i]
+                    avg_y+=self.pos_y[i]
+                    cnt+=1
+
+        if(cnt!=0):
+            avg_x=avg_x/cnt
+            avg_y=avg_y/cnt
+
+        avg_yaw=-self.cohesion()#calculate the desired yaw
+
+
+        if(self.dis(avg_x,avg_y)<DIS_LOWER):
+            return avg_yaw+math.pi
+        else:
+            return 0
 ```
+
+Additionally, if the robots are too far from each other (larger than `DIS_LOWER`), we don't want them to seperate from each other, because they are already seperated enough.
+
+
+
+
 
 ## 2. Results and Evaluation
 
-The robot was tested under 3 polygon shape: triangle, square and pentagon. For each polygon, video and erro at each vertice was recorded. 
-
-    here is the screen shot for error...
-![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/3_er.png)
-![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/4_er.png)
-![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/5_er.png)
+The robot was tested for alignment, cohesion, seperation respectively, and also combined.
 
 ### 2.1. Overall performance
 
-According to the video, the error for triangle and square is fairly acceptable. The same for the first 4 vertices of the polygon. However, when it comes to the 5th vertice, the error increase drastically. The reason for causing this immense
-error might be the accumulation of errors, which ultimately leads to an fall down.
+According to the video, the robots behaved correctly for all of these movements. Also, when I combine all these behaviors together, the robots will also following the correct rules. They also have good grouping behavior--only focus on the local situation.
 
-### 2.2. With higher velocity, comes the bigger error?
-  The robot is also tested with different linear velocity and the results are recorded in the table as follows. The relationship between velocity and error can be concluded as: with a higher speed, the greater the error would be. To be more specific, under the same `edge_len`, the robot will travel a shorter distance if the velocity is high
-  
-|  Velocity (m/s)   | Error at Vertice 1 (m)  | Error at Vertice 2 (m) | Error at Vertice 3 (m) | Average Error (m)|
-|  ----       | ----                  |                     ---- |         ---- | ----   |
-| 0.2 | 0.0341282788309 |0.018326361481 |0.114480155123 |0.055644931811 |
-| 0.8 | 0.311147796769 |0.260894322987 |0.42401567887 | 0.332019266208 |
-| 1.4 | 0.652238059437 |0.625472860458 |0.33535084758 | 0.537687255825|
-  
-  The reason for this phenomenon is that the robot needs more time to accelerate and in order reach the high speed, and therefore more time to deaccelerate to stop. Take a look at the function `move_forward()`, the robot uses the travelling time to determine whether it has reached the destination, and the travelling time is calculated by assuming the robot travels in a constant speed. Therefore, the actual travel distance is always shorter than `edge_len`,
- and the higher the desired velocity is, the shorter the actual travel distance will be.
- 
- ### 2.3 With higher velocity, the more likely to travel in curve?
- 
- Another interesting phenomenon is that, when the speed is high, the robot is more likely to travel in curve. As can be seen in the following pictures:
-    `pic1 & 2`
-A plausible explanation would be, when the robot aims to accelarate to a higher speed, it requires larger force to drive
-its wheel. And if there's a difference in the sleeping times of two wheels, the yaw angle of the robot will be changed 
-dramatically, and result in a curve-like orbit.
+### 2.2. With higher angular velocity, the bigger chance to move in zig-zag?
+In my codes, the angular velocity is a constant. However, when I increase its values, I find that the robots will behave correctly--but their movement is less smooth. In fact, when they try to go straight, they move in a zig-zag manner. 
+This phenomenon is easy to understand--higher angular velocity requires the robot to spend more time in acceleration and slowing down, and the "zig-zag" will happen when its current yaw is close to the `target_yaw`--but still not close enough. Under this circumstance, the robot can't get aligned with the `target_yaw` because high speed will cause overhead easily.
+
 
 ## 3. Debugging & misc
 
