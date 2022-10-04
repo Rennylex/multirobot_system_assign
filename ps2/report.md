@@ -252,7 +252,7 @@ This phenomenon is easy to understand--higher angular velocity requires the robo
 
 ### 3.1. How to assign executable permission to the .sh file?
 
-Initially, I opened 3 terminals for letting 3 robots to execute the node file. Then I decided to use a .sh script (run3.sh) to do the trick. The script is as follows
+Initially, I opened 3 terminals for letting 3 robots to execute the node file. Then I decided to use a .sh script (run3.sh) to do the trick. In this file, I have to designate the namespaces for different robots,and the same for the nodes and launch file we want them to run. The script is as follows
 
 ```bash
 #!/bin/sh
