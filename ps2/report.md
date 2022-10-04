@@ -73,9 +73,10 @@ erratic( pose [ -3.277 25.266 0 150.000 ] name "era10" color "blue")
   
   In order to get the namespace of the robot currently running the node, we can use `self.robot_name=rospy.get_namespace()`
   The index for the robot should be the second one to the end. Use `self.robot_no=self.robot_name[-2]` to get that digit.
+  ![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/ps2/ini_world.png)
   
    
-  ### 1.2.2. Python file: simple_shape
+  ### 1.2.2. Python file
   
   #### Structure
   
