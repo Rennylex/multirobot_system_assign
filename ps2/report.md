@@ -53,6 +53,9 @@
   </group>
   ```
   
+  When the world is initialized, it should look like this.
+  ![avatar](https://github.com/Rennylex/multirobot_system_assign/blob/main/ps2/ini_gazebo.png)
+  
   #### world file modification
   If we want to test the robots in the StageROS, we need to generate our own world file that defines the robots objects and floor plan. Here is how I spawn 10 robots in the `.world` file.
   ```world
